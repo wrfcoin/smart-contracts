@@ -1,0 +1,43 @@
+name: Formal Governance Verification
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  governance-invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MNEMONIC: test test test test test test test test test test test junk
+      NODE_OPTIONS: '--max-old-space-size=4096'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run governance invariant suite
+        run: npm run formal:governance
+
+      - name: Export invariant artifact manifest
+        run: npm run formal:artifacts
+
+      - name: Upload formal verification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: formal-governance-verification
+          path: |
+            test-reports/formal-verification

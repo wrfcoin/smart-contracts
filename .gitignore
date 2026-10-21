@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Hardhat
+artifacts/
+artifacts-station/
+cache/
+cache-station/
+typechain-types/
+
+# Station-adoption scoped build (symlink tree, generated)
+contracts-station/
+
+# Coverage
+coverage/
+coverage.json
+
+# Build
+dist/
+build/
+
+# Env files (operators create from .example)
+*.env
+!*.env.example
+
+# Claude Code workspace files (worktree scaffolding artefacts, not part of this repo)
+.claude
+CLAUDE.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Parametric insurance scoped build
+artifacts-insurance/
+cache-insurance/
+contracts-insurance/
+
+# Claude Code workspace files (worktree scaffolding artefacts, not part of this repo)
+.claude
+CLAUDE.md

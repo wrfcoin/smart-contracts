@@ -1,0 +1,51 @@
+name: Audit Readiness
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  coverage-and-gas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SOLIDITY_COVERAGE: 'true'
+      MNEMONIC: test test test test test test test test test test test junk
+      NODE_OPTIONS: '--max-old-space-size=4096'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate coverage report
+        run: >
+          npx hardhat coverage
+          --sources governance
+          --testfiles "test/{AppealReversalController.test.js,EqualLiabilityEnforcer.test.js,FormalVerificationSpecs.test.js,ParticipationLock.test.js,SlashingController.test.js}"
+
+      - name: Generate gas report
+        run: |
+          mkdir -p test-reports
+          npm run gas:analyze -- --grep "ParticipationLock|EqualLiabilityEnforcer|AppealReversalController|SlashingController" | tee test-reports/gas-report.txt
+
+      - name: Upload audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-readiness-artifacts
+          path: |
+            coverage
+            coverage.json
+            test-reports/gas-report.txt

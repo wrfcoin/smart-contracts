@@ -1,0 +1,133 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/**
+
+concurrency:
+  group: pr-ci-${{ github.repository }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hardhat-compile:
+    name: Hardhat compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run compile
+        run: npm run compile
+
+  focused-tests:
+    name: Focused test suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - hardhat-compile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused tests
+        run: >-
+          npx hardhat test test/launch-blockers.test.js
+          test/SecureBridgeIntegration.security.test.js
+          test/ProofOfObservationMintGate.test.js
+
+  lint:
+    name: Lint contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Reject unsupported readiness claims
+        run: npm run lint:claims
+
+  type-check:
+    name: Type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type checks
+        run: npm run type-check
+
+  ci-gate:
+    name: Pull-request gate (fail-closed)
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - hardhat-compile
+      - focused-tests
+      - lint
+      - type-check
+    steps:
+      - name: Assert required jobs all passed
+        run: |
+          if [[ "${{ needs.hardhat-compile.result }}" != "success" ]]; then
+            echo "Hardhat compile did not pass: ${{ needs.hardhat-compile.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.focused-tests.result }}" != "success" ]]; then
+            echo "Focused tests did not pass: ${{ needs.focused-tests.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "Lint did not pass: ${{ needs.lint.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.type-check.result }}" != "success" ]]; then
+            echo "Type-check did not pass: ${{ needs.type-check.result }}"
+            exit 1
+          fi
+          echo "All CI legs passed and terminal gate is explicitly fail-closed."

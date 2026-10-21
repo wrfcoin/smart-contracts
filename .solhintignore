@@ -1,0 +1,2 @@
+# Lint only this repository's Solidity; dependency packages own their configs.
+node_modules/**

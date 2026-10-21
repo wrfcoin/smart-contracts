@@ -1,0 +1,307 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+/**
+ * @title MockERC20
+ * @dev Advanced mock ERC20 token with comprehensive testing features
+ * @notice Provides realistic ERC20 behavior with additional testing utilities
+ * 
+ * Features:
+ * - Configurable decimals and supply
+ * - Transfer failure simulation
+ * - Fee-on-transfer simulation
+ * - Revert conditions testing
+ * - Gas optimization benchmarking
+ * - Edge case scenario testing
+ */
+contract MockERC20 is ERC20 {
+    
+    /// @dev Testing configuration
+    bool public transferFailureEnabled = false;
+    bool public feeOnTransferEnabled = false;
+    uint256 public transferFeeRate = 100; // 1% in basis points
+    uint256 public maxTransferAmount = type(uint256).max;
+    
+    /// @dev Decimals override for testing different token types
+    uint8 private _decimals;
+    
+    /// @dev Transfer statistics for testing
+    uint256 public totalTransfers;
+    uint256 public totalFeeCollected;
+    mapping(address => uint256) public transferCounts;
+    
+    /// @dev Events for testing analysis
+    event TransferFeeCharged(address indexed from, address indexed to, uint256 fee);
+    event TransferBlocked(address indexed from, address indexed to, uint256 amount, string reason);
+    event MockConfigurationChanged(string parameter, uint256 newValue);
+    
+    /**
+     * @dev Constructor with optional parameters for comprehensive testing
+     * @param name Token name
+     * @param symbol Token symbol  
+     */
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
+        _decimals = 18;
+        _mint(msg.sender, 1000000 * 10**decimals());
+    }
+    
+    /**
+     * @dev Initialize with custom decimals and supply (call after deployment)
+     * @param decimals_ Token decimals
+     * @param initialSupply Additional initial supply (will be minted to caller)
+     */
+    function initializeCustom(uint8 decimals_, uint256 initialSupply) external {
+        _decimals = decimals_;
+        if (initialSupply > 0) {
+            _mint(msg.sender, initialSupply);
+        }
+    }
+    
+    /**
+     * @dev Override decimals to support different token types
+     */
+    function decimals() public view virtual override returns (uint8) {
+        return _decimals;
+    }
+    
+    /**
+     * @dev Enhanced transfer with testing features
+     */
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+        address owner = _msgSender();
+        
+        // Check for transfer failure simulation
+        if (transferFailureEnabled) {
+            emit TransferBlocked(owner, to, amount, "Transfer failure simulation enabled");
+            return false;
+        }
+        
+        // Check maximum transfer amount
+        if (amount > maxTransferAmount) {
+            emit TransferBlocked(owner, to, amount, "Amount exceeds maximum transfer limit");
+            return false;
+        }
+        
+        // Handle fee-on-transfer
+        uint256 transferAmount = amount;
+        uint256 fee = 0;
+        
+        if (feeOnTransferEnabled && transferFeeRate > 0) {
+            fee = (amount * transferFeeRate) / 10000;
+            transferAmount = amount - fee;
+            
+            if (fee > 0) {
+                _transfer(owner, address(this), fee);
+                totalFeeCollected += fee;
+                emit TransferFeeCharged(owner, to, fee);
+            }
+        }
+        
+        // Execute transfer
+        _transfer(owner, to, transferAmount);
+        
+        // Update statistics
+        totalTransfers++;
+        transferCounts[owner]++;
+        
+        return true;
+    }
+    
+    /**
+     * @dev Enhanced transferFrom with testing features
+     */
+    function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
+        address spender = _msgSender();
+        _spendAllowance(from, spender, amount);
+        
+        // Check for transfer failure simulation
+        if (transferFailureEnabled) {
+            emit TransferBlocked(from, to, amount, "Transfer failure simulation enabled");
+            return false;
+        }
+        
+        // Check maximum transfer amount
+        if (amount > maxTransferAmount) {
+            emit TransferBlocked(from, to, amount, "Amount exceeds maximum transfer limit");
+            return false;
+        }
+        
+        // Handle fee-on-transfer
+        uint256 transferAmount = amount;
+        uint256 fee = 0;
+        
+        if (feeOnTransferEnabled && transferFeeRate > 0) {
+            fee = (amount * transferFeeRate) / 10000;
+            transferAmount = amount - fee;
+            
+            if (fee > 0) {
+                _transfer(from, address(this), fee);
+                totalFeeCollected += fee;
+                emit TransferFeeCharged(from, to, fee);
+            }
+        }
+        
+        // Execute transfer
+        _transfer(from, to, transferAmount);
+        
+        // Update statistics
+        totalTransfers++;
+        transferCounts[from]++;
+        
+        return true;
+    }
+    
+    /**
+     * @dev Mint tokens for testing
+     * @param to Address to mint to
+     * @param amount Amount to mint
+     */
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+    
+    /**
+     * @dev Burn tokens for testing
+     * @param from Address to burn from
+     * @param amount Amount to burn
+     */
+    function burn(address from, uint256 amount) external {
+        _burn(from, amount);
+    }
+    
+    /**
+     * @dev Batch mint for testing efficiency
+     * @param recipients Array of recipient addresses
+     * @param amounts Array of amounts to mint
+     */
+    function batchMint(address[] calldata recipients, uint256[] calldata amounts) external {
+        require(recipients.length == amounts.length, "Array length mismatch");
+        
+        for (uint256 i = 0; i < recipients.length; i++) {
+            _mint(recipients[i], amounts[i]);
+        }
+    }
+    
+    /**
+     * @dev Configure transfer failure simulation
+     * @param enabled Whether to enable transfer failures
+     */
+    function setTransferFailure(bool enabled) external {
+        transferFailureEnabled = enabled;
+        emit MockConfigurationChanged("transferFailureEnabled", enabled ? 1 : 0);
+    }
+    
+    /**
+     * @dev Configure fee-on-transfer simulation
+     * @param enabled Whether to enable fee-on-transfer
+     * @param feeRate Fee rate in basis points (100 = 1%)
+     */
+    function setFeeOnTransfer(bool enabled, uint256 feeRate) external {
+        require(feeRate <= 10000, "Fee rate too high");
+        
+        feeOnTransferEnabled = enabled;
+        transferFeeRate = feeRate;
+        
+        emit MockConfigurationChanged("feeOnTransferEnabled", enabled ? 1 : 0);
+        emit MockConfigurationChanged("transferFeeRate", feeRate);
+    }
+    
+    /**
+     * @dev Set maximum transfer amount for testing limits
+     * @param maxAmount Maximum amount that can be transferred
+     */
+    function setMaxTransferAmount(uint256 maxAmount) external {
+        maxTransferAmount = maxAmount;
+        emit MockConfigurationChanged("maxTransferAmount", maxAmount);
+    }
+    
+    /**
+     * @dev Get transfer statistics
+     * @param account Account to check statistics for
+     * @return transfers Total transfers by account
+     * @return totalSystemTransfers Total system transfers
+     * @return feesCollected Total fees collected
+     */
+    function getTransferStats(address account) external view returns (
+        uint256 transfers,
+        uint256 totalSystemTransfers,
+        uint256 feesCollected
+    ) {
+        transfers = transferCounts[account];
+        totalSystemTransfers = totalTransfers;
+        feesCollected = totalFeeCollected;
+    }
+    
+    /**
+     * @dev Withdraw collected fees (for testing)
+     * @param to Address to send fees to
+     */
+    function withdrawFees(address to) external {
+        uint256 fees = balanceOf(address(this));
+        if (fees > 0) {
+            _transfer(address(this), to, fees);
+        }
+    }
+    
+    /**
+     * @dev Reset all statistics
+     */
+    function resetStats() external {
+        totalTransfers = 0;
+        totalFeeCollected = 0;
+    }
+    
+    /**
+     * @dev Simulate different ERC20 edge cases
+     * @param caseType Type of edge case to simulate
+     */
+    function simulateEdgeCase(uint256 caseType) external {
+        if (caseType == 1) {
+            // Simulate token with 6 decimals (USDC-like)
+            _decimals = 6;
+        } else if (caseType == 2) {
+            // Simulate token with 0 decimals
+            _decimals = 0;
+        } else if (caseType == 3) {
+            // Simulate high-decimal token
+            _decimals = 27;
+        } else if (caseType == 4) {
+            // Enable transfer failures temporarily
+            setTransferFailure(true);
+        } else if (caseType == 5) {
+            // Enable high fee on transfer
+            setFeeOnTransfer(true, 1000); // 10% fee
+        }
+        
+        emit MockConfigurationChanged("edgeCaseSimulation", caseType);
+    }
+    
+    /**
+     * @dev Test gas consumption for various operations
+     * @param operationType Type of operation to benchmark
+     * @param iterations Number of iterations
+     */
+    function benchmarkGas(uint256 operationType, uint256 iterations) external {
+        uint256 startGas = gasleft();
+        
+        for (uint256 i = 0; i < iterations && i < 100; i++) {
+            if (operationType == 1) {
+                // Benchmark transfers
+                _transfer(msg.sender, address(this), 1);
+                _transfer(address(this), msg.sender, 1);
+            } else if (operationType == 2) {
+                // Benchmark approvals
+                _approve(msg.sender, address(this), i);
+            } else if (operationType == 3) {
+                // Benchmark mint/burn cycles
+                _mint(msg.sender, 1);
+                _burn(msg.sender, 1);
+            }
+        }
+        
+        uint256 gasUsed = startGas - gasleft();
+        emit MockConfigurationChanged("gasBenchmark", gasUsed);
+    }
+}
