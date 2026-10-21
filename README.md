@@ -49,3 +49,7 @@ The [package scripts](package.json) define local checks. Slither static analysis
 - [Readiness guards](test/LaunchReadinessGuards.test.js)
 
 These are experimental implementations, not claims of conformance, certification or deployed protection.
+
+---
+
+_Note: issue and pull-request numbers mentioned in this repository refer to a private archive that predates this public repository; they are not links into this repo._
