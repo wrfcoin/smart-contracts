@@ -1,4 +1,4 @@
-name: Formal Governance Verification
+name: Governance invariant tests
 
 on:
   schedule:
@@ -30,14 +30,14 @@ jobs:
         run: npm ci
 
       - name: Run governance invariant suite
-        run: npm run formal:governance
+        run: npm run governance:invariants
 
       - name: Export invariant artifact manifest
-        run: npm run formal:artifacts
+        run: npm run governance:invariants:artifacts
 
-      - name: Upload formal verification artifacts
+      - name: Upload governance invariant test artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: formal-governance-verification
+          name: governance-invariant-tests
           path: |
-            test-reports/formal-verification
+            test-reports/governance-invariants
