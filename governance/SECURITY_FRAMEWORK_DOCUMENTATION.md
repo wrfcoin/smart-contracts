@@ -129,12 +129,12 @@ enum SlashingSeverity {
 
 ### 6. TimelockController Integration
 
-**Proven time-delay security mechanism**
+**Time-delay mechanism (design intent)**
 
 - **Minimum Delay**: 72 hours for all governance actions
 - **Emergency Cancellation**: Multi-signature guardian override
 - **Cryptographic Verification**: Hash-based proposal integrity
-- **No Bypass Mechanisms**: Absolute security guarantee
+- **No bypass path by design**: intended property, checked only by the tests in `test/`; not a guarantee
 
 ---
 

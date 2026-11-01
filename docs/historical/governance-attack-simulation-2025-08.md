@@ -1,3 +1,15 @@
+> **Withdrawn and superseded (historical, August 2025).** This narrative is kept only as a record.
+> Its numbers and guarantees are **withdrawn**: the "0% attack success", "95–99.9% security
+> effectiveness" and "prevented" claims are not backed by a stated population, trial count,
+> denominator, source revision or reproducible test run, and some prose does not match the code it
+> quotes (for example, the shown staking snippet halves a new stake's voting weight; it does not
+> enforce a seven-day minimum). Do not cite it as evidence of security.
+>
+> The executable evidence for the governance contracts is the Hardhat test suite in `test/`,
+> including `test/GovernanceInvariants.test.js` (`npm run governance:invariants`). Those tests check
+> named cases at the commit they run on; they are not a proof and do not establish attack-resistance
+> percentages. None of these contracts is deployed on the WRFCoin testnet.
+
 # WRFCoin Governance Security - Attack Simulation & Penetration Testing Report
 
 ## 🎯 Executive Summary

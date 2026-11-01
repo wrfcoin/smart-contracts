@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-describe('FormalVerificationSpecs', function () {
+describe('Governance invariant tests (FormalVerificationSpecs harness)', function () {
   const OFFENSE_CODE = 'CONS-001';
   const EVIDENCE_PAYLOAD_HASH = ethers.keccak256(
     ethers.toUtf8Bytes('formal-verification-evidence-payload-v1')

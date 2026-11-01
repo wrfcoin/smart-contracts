@@ -34,7 +34,7 @@ jobs:
         run: >
           npx hardhat coverage
           --sources governance
-          --testfiles "test/{AppealReversalController.test.js,EqualLiabilityEnforcer.test.js,FormalVerificationSpecs.test.js,ParticipationLock.test.js,SlashingController.test.js}"
+          --testfiles "test/{AppealReversalController.test.js,EqualLiabilityEnforcer.test.js,GovernanceInvariants.test.js,ParticipationLock.test.js,SlashingController.test.js}"
 
       - name: Generate gas report
         run: |
